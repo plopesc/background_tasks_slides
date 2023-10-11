@@ -12,6 +12,102 @@ Drupal developer @ Lullabot
 
 ---
 
+## What is this about?
+
+Efficiency and Responsiveness
+
+Optimizing Resource Usage
+
+Scalability and Concurrency
+
+Note:
+* Explanation:
+
+  * When processing a web request, some tasks may be time-consuming or resource-intensive.
+  * Performing these tasks directly can slow down the response time, impacting user experience.
+* Solution:
+
+  * Delegating such tasks to background processes ensures the web server remains responsive and efficient in handling primary request processing.
+  * Background processes handle secondary tasks without delaying the initial response to the user.
+* Explanation:
+
+  * Background processes can leverage additional server resources without affecting the main request handling.
+  * This prevents resource exhaustion and maintains system stability.
+* Solution:
+
+  * Delegating secondary tasks to separate processes allows for efficient resource management and improved overall system performance.
+
+* Explanation:
+
+  * As user traffic increases, concurrency becomes crucial for effective web application performance.
+  * Blocking the main thread with time-consuming tasks reduces the application's ability to handle multiple requests concurrently.
+* Solution:
+
+  * Offloading secondary tasks allows for scaling and handling more requests concurrently, providing a smoother and more responsive user experience even during peak traffic times.
+
+---
+
+**By delegating secondary tasks to background processes, we enhance the efficiency, responsiveness, and scalability of our web application, ensuring optimal performance and a seamless user interaction.**
+
+---
+
+## Criteria
+
+Critical vs. Non-Critical
+
+Simple vs. Complex
+
+CPU vs. I/O-bound
+
+User Direct Impact vs. User Indirect Impact
+
+Urgent vs. Non-Urgent
+
+---
+
+## Candidate tasks
+
+EMail/Push Notifications, File Processing
+
+Report Generation, Data Import/Export
+
+Image Processing, Cache Clearing
+
+Database Maintenance, Search Indexing
+
+Logging and Analytics, PDF Generation
+
+Collect Payments
+
+Note:
+* Stock for regular books or special first edition
+* Payments for small store or Rolling Stone tickets
+* Push notifications for heart surgery or supermarket offer 
+
+---
+
+# say.hi
+<!-- .slide: data-background-gradient="linear-gradient(to bottom, #283b95, #17b2c3)" -->
+Social Network <!-- .element: class="fragment" -->
+
+### Broadcast messages to all users from a public form  <!-- .element: class="fragment" style="color:red" -->
+
+
+---
+
+## Simple code
+
+<pre><code data-line-numbers>
+public function submitForm(array &$form, FormStateInterface $form_state) {
+  $message = $form_state->getValue('message');
+  $name = $form_state->getValue('name');
+
+  $users = $this->greetings
+    ->sendGreetingsMultiple($name, $message);
+}
+</code></pre>
+---
+
 ## Initial diagram
 
 <!-- .slide: data-auto-animate" -->
@@ -63,7 +159,7 @@ Note:
 
 ---
 
-## How can we solve this?
+## Does Drupal provide tools to solve this bottleneck?
 
 Note:
 * We need to detect where are the bottlenecks. Apparently Task 2
@@ -74,7 +170,9 @@ Note:
 
 ---
 
-## Batch API, Cron and Queues
+## Batch API
+## Cron
+## Queues
 
 Note:
 * Drupal provides some mechanisms to mitigate these situations
@@ -97,6 +195,8 @@ Tasks are not executed in background
 Takes control of the user browser <!-- .element: class="fragment" -->
 
 Maintain resources under control  <!-- .element: class="fragment" -->
+
+**The operation's completion is not certain** <!-- .element: class="fragment" style="color:red" -->
 
 Note:
 * This is not a background task, but allows to have resources under control
