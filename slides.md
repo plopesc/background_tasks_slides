@@ -217,7 +217,7 @@ Note:
 --
 
 ## Batch Example implementation
-<pre><code data-line-numbers="5-13|15-20|22|28-30|35-38|43-52">
+<pre><code data-line-numbers="5-13|15-21|23|29-31|36-39|44-53">
 public function submitForm(array &$form, FormStateInterface $form_state) {
   ....
   // Set up batch operations.
@@ -231,6 +231,7 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
     'error_message' => $this->t('An error occurred during processing'),
   ];
 
+  $chunks = array_chunk($this->loadUserUids(), 50);
   foreach ($chunks as $chunk) {
     $batch['operations'][] = [
       '\Drupal\say_hi\Form\HiBatchForm::processItems',
@@ -430,6 +431,28 @@ Note:
 * Most the times we just need to iterate over the queue during cron
 * Drupal provides QueueWorkers to automate this
 
+--
+
+## Say hi does it
+
+<pre><code data-line-numbers="3|9-11">
+public function submitForm(array &$form, FormStateInterface $form_state) {
+  $queue = $this->queueFactory->get('say_hi_greetings');
+  $message = $form_state->getValue('message');
+  $name = $form_state->getValue('name');
+
+  $uids = $this->loadUserUids();
+
+  array_walk($uids, function (int $uid) use ($name, $message, $queue) {
+    $queue->createItem(new GreetingQueueItem($uid, $name, $message));
+  });
+
+  $this->messenger()->addStatus($this->t('Greetings sent to @count folks.',
+    [
+      '@count' => count($uids),
+    ]));
+}
+</code></pre>
 --
 
 ## QueueWorkers
