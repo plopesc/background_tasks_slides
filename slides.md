@@ -77,7 +77,7 @@ Database Maintenance, Search Indexing
 
 Logging and Analytics, PDF Generation
 
-Collect Payments
+3rd party integrations, Collect Payments
 
 Note:
 * Stock for regular books or special first edition
@@ -92,26 +92,38 @@ Social Network <!-- .element: class="fragment" -->
 
 ### Broadcast messages to all users from a public form  <!-- .element: class="fragment" style="color:red" -->
 
+--
 
----
+![alt text](assets/say-hi-form.png)
 
-## Simple code
+--
 
-<pre><code data-line-numbers>
+## Form Submit Callback
+
+<pre><code data-line-numbers="3-4|6-7|9-12">
 public function submitForm(array &$form, FormStateInterface $form_state) {
   $message = $form_state->getValue('message');
   $name = $form_state->getValue('name');
 
   $users = $this->greetings
     ->sendGreetingsMultiple($name, $message);
+
+  $this->messenger()
+    ->addStatus(t('Greetings sent to @count folks.', [
+      '@count' => count($users),
+    ]));
 }
 </code></pre>
+
+Note:
+* Service that iterates and sends an email
+* What could go wrong?
 ---
 
-## Initial diagram
+## How Request is processed
 
-<!-- .slide: data-auto-animate" -->
-![alt text](examples/assets/image1.png)
+![alt text](assets/main-diagram.png)
+
 
 Note:
 * This is something we all are used to see. Nothing new
@@ -120,23 +132,23 @@ Note:
 * Not all the problems are solved increasing memory or adding new servers in parallel, that can be expensive
 --
 
-## Zoom into tasks
+## What theory says
 
-<!-- .slide: data-auto-animate" -->
-![alt text](examples/assets/image2.png)
+<!-- .slide: data-auto-animate -->
+![alt text](assets/flow1.png) <!-- .element: data-id="diagram" -->
 
 Note:
 * Let's dive into the internals of response generations process
 * Multiple tasks, like loading entities, processing entities and prepare rendering
-* Task 2 could be a bit problematic, like notifying users or updating related entities when a specific event takes place
+* Connect tasks with previous slide
 * Our site only has a few visitors or nodes and everything is OK
 
 --
 
-## Tasks are getting bigger
+## Site is getting traction. Bottlenecks appear
 
-<!-- .slide: data-auto-animate" -->
-![alt text](examples/assets/image2.png)
+<!-- .slide: data-auto-animate -->
+![alt text](assets/flow2.png) <!-- .element: data-id="diagram" -->
 
 Note:
 * Our website is more and more popular, we did a great job and it's getting traction
@@ -146,16 +158,32 @@ Note:
 
 --
 
-## Things are broken. It does not scale
+## Death of success
 
-<!-- .slide: data-auto-animate" -->
-![alt text](examples/assets/image2.png)
+<!-- .slide: data-auto-animate -->
+![alt text](assets/flow3.png) <!-- .element: data-id="diagram" -->
+
+<pre><code>PHP Fatal error:  Allowed memory size of 134217728 bytes...
+</code></pre>
 
 Note:
 * This is something we all are used to see. Nothing new
 * Our site succumbed to success
 * Situation does not scale
 * We need to improve the Task 2 performance somehow
+
+--
+
+## Some numbers
+<!-- .slide: data-auto-animate -->
+![alt text](assets/charts/normal/time.png)
+
+--
+
+## Some numbers
+<!-- .slide: data-auto-animate -->
+![alt text](assets/charts/normal/memory.png)
+
 
 ---
 
@@ -171,8 +199,8 @@ Note:
 ---
 
 ## Batch API
-## Cron
-## Queues
+## Cron API
+## Queue API
 
 Note:
 * Drupal provides some mechanisms to mitigate these situations
@@ -181,7 +209,7 @@ Note:
 ---
 
 ## Batch API
-<!-- .slide: data-auto-animate" -->
+<!-- .slide: data-auto-animate -->
 ![alt text](assets/batch.png)
 
 Note:
@@ -189,12 +217,14 @@ Note:
 --
 
 ## Batch API
-<!-- .slide: data-auto-animate" -->
-Tasks are not executed in background
+<!-- .slide: data-auto-animate -->
+Maintain resources under control
 
-Takes control of the user browser <!-- .element: class="fragment" -->
+Tasks are not executed in background  <!-- .element: class="fragment" -->
 
-Maintain resources under control  <!-- .element: class="fragment" -->
+Take control of the user browser <!-- .element: class="fragment" -->
+
+
 
 **The operation's completion is not certain** <!-- .element: class="fragment" style="color:red" -->
 
@@ -204,26 +234,28 @@ Note:
 * Update node permissions table, run database updates or bulk operations
 * It can be used also to handle expensive tasks via Drush
 * Provided by default when implementing hook_update_N and hook_post_update_NAME
+* Not very friendly in general. Even more for non-administrative tasks.
 
 --
 
 ## Batch diagram
 
+![alt text](assets/batch-diagram.png)
+
 Note:
 * It splits the subtasks to execute them smaller chunks to ensure that server resources are under control
 * Logic to determine chunk size and how to manage the resources is up to the developer
-* Not very friendly in general. Even more for non-administrative tasks.
 
 --
 
-## Batch Example implementation
+## Say.Hi Batch implementation
 <pre><code data-line-numbers="5-13|15-21|23|29-31|36-39|44-53">
 public function submitForm(array &$form, FormStateInterface $form_state) {
   ....
   // Set up batch operations.
   $batch = [
     'operations' => [
-      ['::initBatch', [count($users)]],
+      ['::initBatch', [count($this->loadUserUids())]],
     ],
     'finished' => '::finishedCallback',
     'title' => $this->t('Sending greetings...'),
@@ -273,19 +305,33 @@ public static function finishedCallback(bool $success, array $results, array $op
 }
 </code></pre>
 Note:
-* Show Me The Code
+* Simple implementation, there are more options
+* Mention BatchBuilder class, introduced in 8.6
+
+--
+
+## Some numbers
+<!-- .slide: data-auto-animate -->
+![alt text](assets/charts/batch/time.png)
+
+--
+
+## Some numbers
+<!-- .slide: data-auto-animate -->
+![alt text](assets/charts/batch/memory.png)
 
 ---
 
-## Drupal Cron
+## Cron API
 
 Based on hook_cron()
 
-Allow to execute recurring or scheduled tasks when Drupal cron is invoked
+Executes recurring or scheduled tasks when it is invoked
 
 Note:
 * Centralized (for now) in hook_cron()
 * Allows to schedule repetitive tasks that can be run in the background
+* Check Cron.php file
 * Remove orphan files from the filesystem, delete fields
 * Search API indexation
 
@@ -293,7 +339,7 @@ Note:
 
 ## Limitations
 
-Not all the cron tasks might have same needs
+Cron tasks may not all have the same requirements
 
 Hard to have a clear overview of tasks run
 
@@ -309,10 +355,10 @@ Note:
 --
 
 ## hook_cron()
-<!-- .slide: data-auto-animate" -->
+<!-- .slide: data-auto-animate -->
 <pre data-id="code-animation"><code data-line-numbers>
-function my_module_cron() {
-  $service = \Drupal('my_module.maintenance'); 
+function say_hi_cron() {
+  $service = \Drupal('say_hi.maintenance'); 
   $service->maintainSite();
 }
 </code></pre>
@@ -322,22 +368,22 @@ Note:
 
 --
 
-## hook_cron()
-<!-- .slide: data-auto-animate" -->
-<pre data-id="code-animation"><code data-line-numbers="3-5|6-9">
-function my_module_cron() {
-  $service = \Drupal('my_module.maintenance'); 
+## Say.Hi Cron implementation
+<!-- .slide: data-auto-animate -->
+<pre data-id="code-animation"><code data-line-numbers="6-9">
+function say_hi_cron() {
+  $service = \Drupal('say_hi.maintenance'); 
   $service->maintainSite();
 
   $hour = date('H');
-  if ($hour >= 8 && $hour <= 10) {
+  if ($hour >= 8 && $hour <= 9) {
     $service->sayGoodMorning():
   }
 }
 </code></pre>
 
 Note:
-* Show Me The Code
+* Mention complexity to define tasks with different granularity in the same module
 
 --
 
@@ -348,8 +394,8 @@ Simple Cron <!-- .element: class="fragment fade-in-then-semi-out" -->
 Ultimate Cron <!-- .element: class="fragment fade-in-then-semi-out" -->
 
 Note:
-* Ultimate Cron
-* Simple Cron
+* Simple Cron: UI, different granularity and weight, access to the queues, define plugins
+* Ultimate Cron: More flexibility, any callback can be a scheduled, parallel execution, custom rules for triggers, etc
 
 --
 
@@ -370,11 +416,15 @@ Note:
 
 </code></pre>
 Note:
-* implement custom 
+* No need to add extra modules
+* Requires some extra knowledge
+* Logging needs to be done manually
+* Needs to be done at server level. Not available in all the SASS platforms
+* 3rd party services (EasyCron, Pingdom)
 
 ---
 
-## Queues
+## Queue API
 
 Offloads resource-intensive or time-consuming tasks from the main application for improved performance.
 
@@ -389,20 +439,19 @@ Note:
  
 --
 
-## Queues
+## Queue diagram
 
-Offloads resource-intensive or time-consuming tasks from the main application for improved performance.
-
-Ensures efficient processing by allowing background execution of tasks.
+![alt text](assets/queue-diagram.png)
 
 Note:
 * List of items
 * create, claim, delete, release
 * QueueInterface & ReliableQueueInterface
+* Different backends
  
 --
 
-## Dealing with queues
+## Working with queues
 <pre><code data-line-numbers="2-3|5-6|10-11|13-20">
 // Get the queue.
 $my_queue = \Drupal::queue('my_queue');
@@ -426,16 +475,18 @@ try {
 </code></pre>
 
 Note:
+* 4 Elements (Factory, Queue, Item, Backend)
 * Create and process a Queue in Drupal is as simple as this
+* Queues can have other operations like delay, depending on the queue type
 * It can be complex to know when and how to process these queues
 * Most the times we just need to iterate over the queue during cron
 * Drupal provides QueueWorkers to automate this
 
 --
 
-## Say hi does it
+## Say.Hi queue implementation
 
-<pre><code data-line-numbers="3|9-11">
+<pre><code data-line-numbers="3|9-13">
 public function submitForm(array &$form, FormStateInterface $form_state) {
   $queue = $this->queueFactory->get('say_hi_greetings');
   $message = $form_state->getValue('message');
@@ -444,7 +495,9 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
   $uids = $this->loadUserUids();
 
   array_walk($uids, function (int $uid) use ($name, $message, $queue) {
-    $queue->createItem(new GreetingQueueItem($uid, $name, $message));
+    $queue->createItem(
+      new GreetingQueueItem($uid, $name, $message)
+    );
   });
 
   $this->messenger()->addStatus($this->t('Greetings sent to @count folks.',
@@ -453,13 +506,14 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
     ]));
 }
 </code></pre>
+
 --
 
 ## QueueWorkers
 
-Automates the generic queue operations to avoid reinventing the wheel
+Automate generic queue processing operations
 
-Adds some extra helpful functionalities to manage queues
+Add some extra helpful functionalities to manage queues
 
 Note:
 * Plugins that define how to process queue items
@@ -471,27 +525,27 @@ Note:
 --
 
 ## QueueWorker Example
-<pre><code data-line-numbers="7-11|19-30|32-34">
-namespace Drupal\media\Plugin\QueueWorker;
+<pre><code data-line-numbers="7-11|19-31|33-36">
+namespace Drupal\say_hi\Plugin\QueueWorker;
 
 /**
- * Process a queue of of custom items.
+ * Process a queue of of greeting items.
  *
  * @QueueWorker(
- *   id = "media_entity_thumbnail",
- *   title = @Translation("Thumbnail downloader"),
+ *   id = "say_hi_greetings",
+ *   title = @Translation("Say Hi Greetings"),
  *   cron = {"time" = 60}
  * )
  */
-class ThumbnailDownloader extends QueueWorkerBase {
+class GreetingsSender extends QueueWorkerBase {
 
   /**
    * {@inheritdoc}
    */
-  public function processItem(MyData $data) {
+  public function processItem($data) {
     if ($data->delayItem()) {
       // Add item back to the queue but delay execution.
-      throw new DelayedRequeueException();
+      throw new DelayedRequeueException(10);
     }
     if ($data->requeueItem()) {
       // Add item back to the queue immediately.
@@ -499,23 +553,29 @@ class ThumbnailDownloader extends QueueWorkerBase {
     }
     if ($data->suspendQueue()) {
       // Release the item and stop processing the queue.
+      // Allows to define a delay.
       throw new SuspendQueueException();
     }
 
     // If nothing happens the item is deleted
     // from the queue after processing.
-    $this->processSuccessful($data);
+    $user = $this->entityTypeManager->getStorage('user')->load($data->uid);
+    $this->greetings->sendGreetings(new Greeting($user, $data->name, $data->message));
   }
 
 }
 </code></pre>
  
 Note:
-* Show Me The Code
+* Talk about exceptions
+* DelayItem is an "at least". Might be postponed to next execution if queue is finished
+* SuspendQueueException accepts a delay parameter. Can be retaken if cron has bot been finished
 
 --
 
 ## Contrib modules
+Queue UI <!-- .element: class="fragment fade-in-then-semi-out" -->
+
 External queues: RabbitMQ, Kafka, SQS... <!-- .element: class="fragment fade-in-then-semi-out" -->
 
 Queue Unique  <!-- .element: class="fragment fade-in-then-semi-out" -->
@@ -529,7 +589,8 @@ Note:
 
 --
 
-## Never Ending Queues
+## Queue risks
+<!-- .slide: data-auto-animate -->
 
 <pre><code class="console">
 $ drush queue:list
@@ -541,51 +602,65 @@ $ drush queue:list
 
 $ drush queue:run say_hi_greetings
 PHP Fatal error:  Allowed memory size of 134217728 bytes...
-
 </code></pre>
 
 Note:
 * Queue grows faster than it is processed, so expected tasks are not being executed
 * Number of queues overlaps one execution with the next
 * Could be mitigated by using Queue Unique module
-* Try different cron setups using cron related modules or running queues directly from crontab 
+* Try different cron setups using cron related modules or running queues directly from crontab
+
+--
+
+## Queue risks
+<!-- .slide: data-auto-animate -->
+
+Queue Overload
+
+Prioritization
+
+Scalability and Resource Management
+
+Note:
+* Queue can become overloaded, causing delays and potential system instability
+* Fairly prioritizing tasks within a queue can be challenging, especially when
+  dealing with tasks of varying importance or urgency.
+* Scaling the queue management system efficiently as the load grows and managing
+  resources effectively to handle the increasing demand.
+--
+
+## Some numbers
+<!-- .slide: data-auto-animate -->
+![alt text](assets/charts/queue/time.png)
+
+--
+
+## Some numbers
+<!-- .slide: data-auto-animate -->
+![alt text](assets/charts/queue/memory.png)
+---
+
+## Comparison
+<!-- .slide: data-auto-animate -->
+![alt text](assets/charts/compare/time.png)
+
+--
+
+## Comparison
+<!-- .slide: data-auto-animate -->
+![alt text](assets/charts/compare/memory.png)
 
 ---
 
-## Benchmark
+## Takeaways
 
-Note:
-* Let's get some numbers from an example
+Task analysis is crucial
 
---
+Strategic Balance
 
-## Definition
+Scalability Advantage
 
-Note:
-* Simple module that does a simple thing, theoretically trivial
-* Offers a form that allows to send a broadcast email message to all the users
-  in the system
-* We are offering 3 different forms to perform the same task: main thread, batch and queue
-
---
-
-## Graphics
-
-Note:
-* Show some insights
-* Show demo if possible??
-
---
-
-## Conclusion
-
-Note:
-* Show some insights
-* Show demo if possible??
-
----
-
-## When
+Enhanced User Satisfaction <!-- .element: class="fragment highlight-red" -->
 
 Note:
 * This is probably the biggest question
@@ -596,3 +671,5 @@ Note:
 ---
 
 ## Thank you
+
+## Questions? <!-- .element: class="fragment" -->
