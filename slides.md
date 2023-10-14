@@ -21,29 +21,19 @@ Optimizing Resource Usage
 Scalability and Concurrency
 
 Note:
-* Explanation:
-
-  * When processing a web request, some tasks may be time-consuming or resource-intensive.
-  * Performing these tasks directly can slow down the response time, impacting user experience.
-* Solution:
-
-  * Delegating such tasks to background processes ensures the web server remains responsive and efficient in handling primary request processing.
-  * Background processes handle secondary tasks without delaying the initial response to the user.
-* Explanation:
-
-  * Background processes can leverage additional server resources without affecting the main request handling.
-  * This prevents resource exhaustion and maintains system stability.
-* Solution:
-
-  * Delegating secondary tasks to separate processes allows for efficient resource management and improved overall system performance.
-
-* Explanation:
-
-  * As user traffic increases, concurrency becomes crucial for effective web application performance.
-  * Blocking the main thread with time-consuming tasks reduces the application's ability to handle multiple requests concurrently.
-* Solution:
-
-  * Offloading secondary tasks allows for scaling and handling more requests concurrently, providing a smoother and more responsive user experience even during peak traffic times.
+* When processing a web request, some tasks may be time-consuming or resource-intensive.
+ Performing these tasks directly can slow down the response time, impacting user experience.
+  * Delegating such tasks to background processes ensures the web server remains responsive
+    and efficient in handling primary request processing without delaying the initial response to the user.
+* Background processes can leverage additional server resources,
+  preventing resource exhaustion and maintaining system stability.
+  * Delegating secondary tasks to separate processes allows for efficient resource
+    management and improved overall system performance.
+* As user traffic increases, concurrency becomes crucial for effective web application performance.
+  Blocking the main thread with time-consuming tasks reduces the application's ability to handle
+  multiple requests concurrently.
+  * Offloading secondary tasks allows for scaling and handling more requests concurrently,
+    providing a smoother and more responsive user experience even during peak traffic times.
 
 ---
 
@@ -59,9 +49,14 @@ Simple vs. Complex
 
 CPU vs. I/O-bound
 
+Urgent vs. Non-Urgent
+
 User Direct Impact vs. User Indirect Impact
 
-Urgent vs. Non-Urgent
+Note:
+* There's no one-size-fits-all solution
+* It depends on each situation
+* I listed some criteria, but you can find other more useful
 
 ---
 
@@ -154,7 +149,7 @@ Note:
 * Our website is more and more popular, we did a great job and it's getting traction
 * The number of concurrent users has grown and the number of interaction is bigger than expected
 * We get a timeout or out of memory error in our logs from time to time
-* Let's increase memory and let's see
+* Let's increase memory and let's see. Pass the buck
 
 --
 
@@ -167,7 +162,6 @@ Note:
 </code></pre>
 
 Note:
-* This is something we all are used to see. Nothing new
 * Our site succumbed to success
 * Situation does not scale
 * We need to improve the Task 2 performance somehow
@@ -193,6 +187,7 @@ Note:
 * We need to detect where are the bottlenecks. Apparently Task 2
 * Improve the code, reduce redundancy, apply caches, etc
 * What if we delegates part of these subtasks that are not critical for the main flow?
+* The fastest task is the task not done
 * Emails, Push notification, image or processing, data import/export, database updates,
   external services synchronization, etc
 
@@ -376,7 +371,7 @@ function say_hi_cron() {
   $service->maintainSite();
 
   $hour = date('H');
-  if ($hour >= 8 && $hour <= 9) {
+  if ($hour == 8) {
     $service->sayGoodMorning():
   }
 }
@@ -408,7 +403,7 @@ Note:
 5 0,4,10,16 * * * drush my_module:regenerate-categories
 
 # Rotate the ad banners every 20 minutes
-0,20,40  * * * * drush php:eval 
+10,30,50  * * * * drush php:eval 
 "\Drupal::service('banner_manager')->rotateBanner();"
 
 # Process the mail queue every 2 minutes
@@ -509,23 +504,65 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 
 --
 
+## Queue risks
+<!-- .slide: data-auto-animate -->
+<pre><code class="console">
+$ drush queue:list
+ ------------------ ------- --------------------------------- 
+  Queue              Items   Class                            
+ ------------------ ------- --------------------------------- 
+  say_hi_greetings   264478   Drupal\Core\Queue\DatabaseQueue  
+ ------------------ ------- --------------------------------- 
+
+$ drush queue:run say_hi_greetings
+PHP Fatal error:  Allowed memory size of 134217728 bytes...
+</code></pre>
+
+Note:
+* Life isn't all roses
+* Queue grows faster than it is processed, so expected tasks are not being executed
+* Number of queues overlaps one execution with the next
+* Could be mitigated by using Queue Unique module
+* Try different cron setups using cron related modules or running queues directly from crontab
+
+--
+
+## Queue risks
+<!-- .slide: data-auto-animate -->
+
+Scalability and Resource Management
+
+Operational Complexity
+
+Prioritization
+
+Note:
+* Queue can become overloaded, causing delays and potential system instability
+* Fairly prioritizing tasks within a queue can be challenging, especially when
+  dealing with tasks of varying importance or urgency.
+* Scaling the queue management system efficiently as the load grows and managing
+  resources effectively to handle the increasing demand.
+
+--
+
 ## QueueWorkers
 
 Automate generic queue processing operations
 
-Add some extra helpful functionalities to manage queues
+Incorporate additional features for queue management
 
 Note:
 * Plugins that define how to process queue items
-* It automates the process of claiming items during cron runs and takes care of timeouts
-  when queue size is big
+* It automates the process of claiming items during cron runs and takes care of
+  timeouts when queue size grows
 * Provides specific exceptions to handle the items in different ways
 * Drush & related modules integration
+* Media thumbnail and download locale translations in core
 
 --
 
-## QueueWorker Example
-<pre><code data-line-numbers="7-11|19-31|33-36">
+## Say.Hi QueueWorker
+<pre><code data-line-numbers="7-11|19-31|33-38">
 namespace Drupal\say_hi\Plugin\QueueWorker;
 
 /**
@@ -559,8 +596,10 @@ class GreetingsSender extends QueueWorkerBase {
 
     // If nothing happens the item is deleted
     // from the queue after processing.
-    $user = $this->entityTypeManager->getStorage('user')->load($data->uid);
-    $this->greetings->sendGreetings(new Greeting($user, $data->name, $data->message));
+    $user = $this->userStorage->load($data->uid);
+    $this->greetings->sendGreetings(
+      new Greeting($user, $data->name, $data->message)
+    );
   }
 
 }
@@ -587,46 +626,6 @@ Note:
 * External Queues, like RabbitMQ, Kafka, SQS
 * Queue Unique, Warmer
 
---
-
-## Queue risks
-<!-- .slide: data-auto-animate -->
-
-<pre><code class="console">
-$ drush queue:list
- ------------------ ------- --------------------------------- 
-  Queue              Items   Class                            
- ------------------ ------- --------------------------------- 
-  say_hi_greetings   64478   Drupal\Core\Queue\DatabaseQueue  
- ------------------ ------- --------------------------------- 
-
-$ drush queue:run say_hi_greetings
-PHP Fatal error:  Allowed memory size of 134217728 bytes...
-</code></pre>
-
-Note:
-* Queue grows faster than it is processed, so expected tasks are not being executed
-* Number of queues overlaps one execution with the next
-* Could be mitigated by using Queue Unique module
-* Try different cron setups using cron related modules or running queues directly from crontab
-
---
-
-## Queue risks
-<!-- .slide: data-auto-animate -->
-
-Queue Overload
-
-Prioritization
-
-Scalability and Resource Management
-
-Note:
-* Queue can become overloaded, causing delays and potential system instability
-* Fairly prioritizing tasks within a queue can be challenging, especially when
-  dealing with tasks of varying importance or urgency.
-* Scaling the queue management system efficiently as the load grows and managing
-  resources effectively to handle the increasing demand.
 --
 
 ## Some numbers
@@ -670,6 +669,23 @@ Note:
 
 ---
 
-## Thank you
+<blockquote>
+  “The fastest task is the task not done”
+</blockquote>
 
-## Questions? <!-- .element: class="fragment" -->
+---
+
+## Thank you
+<!-- .slide: data-auto-animate -->
+
+**[https://plopesc.github.io/background_tasks_slides](https://plopesc.github.io/background_tasks_slides)**
+
+**[https://github.com/plopesc/say_hi](https://github.com/plopesc/say_hi)**
+---
+
+## Questions?
+<!-- .slide: data-auto-animate -->
+
+**[https://plopesc.github.io/background_tasks_slides](https://plopesc.github.io/background_tasks_slides)**
+
+**[https://github.com/plopesc/say_hi](https://github.com/plopesc/say_hi)**
