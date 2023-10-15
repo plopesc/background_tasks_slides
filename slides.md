@@ -23,17 +23,17 @@ Scalability and Concurrency
 Note:
 * When processing a web request, some tasks may be time-consuming or resource-intensive.
  Performing these tasks directly can slow down the response time, impacting user experience.
-  * Delegating such tasks to background processes ensures the web server remains responsive
-    and efficient in handling primary request processing without delaying the initial response to the user.
+  * <small>Delegating such tasks to background processes ensures the web server remains responsive
+    and efficient in handling primary request processing without delaying the initial response to the user.</small>
 * Background processes can leverage additional server resources,
   preventing resource exhaustion and maintaining system stability.
-  * Delegating secondary tasks to separate processes allows for efficient resource
-    management and improved overall system performance.
+  * <small>Delegating secondary tasks to separate processes allows for efficient resource
+    management and improved overall system performance.</small>
 * As user traffic increases, concurrency becomes crucial for effective web application performance.
   Blocking the main thread with time-consuming tasks reduces the application's ability to handle
   multiple requests concurrently.
-  * Offloading secondary tasks allows for scaling and handling more requests concurrently,
-    providing a smoother and more responsive user experience even during peak traffic times.
+  * <small>Offloading secondary tasks allows for scaling and handling more requests concurrently,
+    providing a smoother and more responsive user experience even during peak traffic times.</small>
 
 ---
 
@@ -187,9 +187,6 @@ Note:
 * We need to detect where are the bottlenecks. Apparently Task 2
 * Improve the code, reduce redundancy, apply caches, etc
 * What if we delegates part of these subtasks that are not critical for the main flow?
-* The fastest task is the task not done
-* Emails, Push notification, image or processing, data import/export, database updates,
-  external services synchronization, etc
 
 ---
 
@@ -349,7 +346,7 @@ Note:
 
 --
 
-## hook_cron()
+## Say.Hi Cron implementation
 <!-- .slide: data-auto-animate -->
 <pre data-id="code-animation"><code data-line-numbers>
 function say_hi_cron() {
@@ -662,7 +659,6 @@ Scalability Advantage
 Enhanced User Satisfaction <!-- .element: class="fragment highlight-red" -->
 
 Note:
-* This is probably the biggest question
 * Usage of these tools might require some knowledge and requires time to implement
 * Need to be realistic. We can leave them out of the MVP, but develop our code having
   in mind that it could be moved into a batch or queue in the future (implement different services) 
