@@ -89,7 +89,7 @@ Social Network <!-- .element: class="fragment" -->
 
 --
 
-![alt text](assets/say-hi-form.png)
+![Say.Hi form screenshot](assets/say-hi-form.png)
 
 --
 
@@ -117,7 +117,7 @@ Note:
 
 ## How Request is processed
 
-![alt text](assets/main-diagram.png)
+![Traditional request diagram](assets/main-diagram.png)
 
 
 Note:
@@ -130,7 +130,7 @@ Note:
 ## What theory says
 
 <!-- .slide: data-auto-animate -->
-![alt text](assets/flow1.png) <!-- .element: data-id="diagram" -->
+![Initial diagram including multiple tasks](assets/flow1.png) <!-- .element: data-id="diagram" -->
 
 Note:
 * Let's dive into the internals of response generations process
@@ -143,7 +143,7 @@ Note:
 ## Site is getting traction. Bottlenecks appear
 
 <!-- .slide: data-auto-animate -->
-![alt text](assets/flow2.png) <!-- .element: data-id="diagram" -->
+![Task 2 is becoming unresponsive](assets/flow2.png) <!-- .element: data-id="diagram" -->
 
 Note:
 * Our website is more and more popular, we did a great job and it's getting traction
@@ -156,7 +156,7 @@ Note:
 ## Death of success
 
 <!-- .slide: data-auto-animate -->
-![alt text](assets/flow3.png) <!-- .element: data-id="diagram" -->
+![Death of success](assets/flow3.png) <!-- .element: data-id="diagram" -->
 
 <pre><code>PHP Fatal error:  Allowed memory size of 134217728 bytes...
 </code></pre>
@@ -170,13 +170,13 @@ Note:
 
 ## Some numbers
 <!-- .slide: data-auto-animate -->
-![alt text](assets/charts/normal/time.png)
+![Time/Users initial chart](assets/charts/normal/time.png)
 
 --
 
 ## Some numbers
 <!-- .slide: data-auto-animate -->
-![alt text](assets/charts/normal/memory.png)
+![Memory/Users initial chart](assets/charts/normal/memory.png)
 
 
 ---
@@ -202,7 +202,7 @@ Note:
 
 ## Batch API
 <!-- .slide: data-auto-animate -->
-![alt text](assets/batch.png)
+![Batch API screenshot](assets/batch.png)
 
 Note:
 * This is screen should be familiar
@@ -232,7 +232,7 @@ Note:
 
 ## Batch diagram
 
-![alt text](assets/batch-diagram.png)
+![Batch API diagram](assets/batch-diagram.png)
 
 Note:
 * It splits the subtasks to execute them smaller chunks to ensure that server resources are under control
@@ -304,13 +304,13 @@ Note:
 
 ## Some numbers
 <!-- .slide: data-auto-animate -->
-![alt text](assets/charts/batch/time.png)
+![Time/Users batch chart](assets/charts/batch/time.png)
 
 --
 
 ## Some numbers
 <!-- .slide: data-auto-animate -->
-![alt text](assets/charts/batch/memory.png)
+![Memory/Users batch chart](assets/charts/batch/memory.png)
 
 ---
 
@@ -433,7 +433,7 @@ Note:
 
 ## Queue diagram
 
-![alt text](assets/queue-diagram.png)
+![Queue diagram](assets/queue-diagram.png)
 
 Note:
 * List of items
@@ -627,24 +627,24 @@ Note:
 
 ## Some numbers
 <!-- .slide: data-auto-animate -->
-![alt text](assets/charts/queue/time.png)
+![Time/Users queue chart](assets/charts/queue/time.png)
 
 --
 
 ## Some numbers
 <!-- .slide: data-auto-animate -->
-![alt text](assets/charts/queue/memory.png)
+![Memory/Users queue chart](assets/charts/queue/memory.png)
 ---
 
 ## Comparison
 <!-- .slide: data-auto-animate -->
-![alt text](assets/charts/compare/time.png)
+![Time/Users comparison chart](assets/charts/compare/time.png)
 
 --
 
 ## Comparison
 <!-- .slide: data-auto-animate -->
-![alt text](assets/charts/compare/memory.png)
+![Memory/Users comparison chart](assets/charts/compare/memory.png)
 
 ---
 
